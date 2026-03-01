@@ -87,7 +87,10 @@ public extension InputObserving where Self == ActivatePointerObserver {
         case idle
         case recognizing(id: AnyHashable, lastLocation: CGPoint)
         case recognized
-        case failed(activePointers: Set<AnyHashable>)
+        // Original code
+        // case failed(activePointers: Set<AnyHashable>)
+        // Flutter adaptation
+        case failed
     }
 
     private var state: State = .idle {
@@ -118,7 +121,40 @@ public extension InputObserving where Self == ActivatePointerObserver {
         false
     }
 
+    // Flutter adaptation
     private func transition(state: State, event: PointerEvent) -> State {
+        let id = event.pointer.id
+
+        switch (state, event.phase) {
+        case (.idle, .down), (.failed, .down):
+            guard event.modifiers == modifiers else { return .failed }
+            return .recognizing(id: id, lastLocation: event.location)
+
+        case let (.recognizing(recognizingID, _), .down) where recognizingID != id:
+            // Previous touch was consumed by Flutter, start fresh
+            return .recognizing(id: id, lastLocation: event.location)
+
+        case let (.recognizing(recognizingID, _), .cancel) where recognizingID == id:
+            return .idle
+
+        case let (.recognizing(recognizingID, lastLocation), .move) where recognizingID == id:
+            let moved = abs(lastLocation.x - event.location.x) > 1
+                     || abs(lastLocation.y - event.location.y) > 1
+            return moved ? .failed : .recognizing(id: id, lastLocation: event.location)
+
+        case let (.recognizing(recognizingID, _), .up) where recognizingID == id:
+            return .recognized
+
+        case (.failed, .up), (.failed, .cancel):
+            return .idle
+
+        default:
+            return state
+        }
+    }
+
+    // Original code
+    /*private func transition(state: State, event: PointerEvent) -> State {
         let id = event.pointer.id
 
         switch (state, event.phase) {
@@ -161,5 +197,5 @@ public extension InputObserving where Self == ActivatePointerObserver {
         default:
             return state
         }
-    }
+    }*/
 }
