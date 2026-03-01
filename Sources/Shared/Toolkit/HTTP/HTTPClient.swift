@@ -66,6 +66,9 @@ public extension HTTPClient {
             request,
             onReceiveResponse: onReceiveResponse,
             consume: { chunk, _ in
+                if Task.isCancelled {
+                    return .failure(.cancelled)
+                }
                 accumulator.withLock { $0.append(chunk) }
                 return .success(())
             }
@@ -148,6 +151,10 @@ public extension HTTPClient {
             request,
             onReceiveResponse: onReceiveResponse,
             consume: { data, progression in
+                if Task.isCancelled {
+                    return .failure(.cancelled)
+                }
+
                 do {
                     try fileHandle.write(contentsOf: data)
                 } catch {
