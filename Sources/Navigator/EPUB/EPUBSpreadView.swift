@@ -130,6 +130,15 @@ class EPUBSpreadView: UIView, Loggable, PageView {
         scrollView.delegate = self
     }
 
+    var isAtLastInternalPage: Bool {
+        guard scrollView.contentSize.width > scrollView.frame.width else {
+            // Content fits in one page, so we're on the last (only) page
+            return true
+        }
+        let maxOffset = scrollView.contentSize.width - scrollView.frame.width
+        return abs(scrollView.contentOffset.x - maxOffset) < 2
+    }
+
     @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
