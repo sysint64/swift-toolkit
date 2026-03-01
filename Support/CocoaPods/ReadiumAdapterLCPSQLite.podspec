@@ -9,7 +9,7 @@ Pod::Spec.new do |s|
   s.summary       = "Adapter to use SQLite.swift for the Readium LCP repositories"
   s.homepage      = "http://readium.github.io"
   s.author        = { "Readium" => "contact@readium.org" }
-  s.source        = { :git => "https://github.com/readium/swift-toolkit.git", :tag => s.version }
+  s.source        = { :git => "https://github.com/sysint64/swift-toolkit.git", :branch => "haruhi" }
   s.requires_arc  = true
   s.source_files  = "Sources/Adapters/LCPSQLite/**/*.{m,h,swift}"
   s.swift_version = '5.10'

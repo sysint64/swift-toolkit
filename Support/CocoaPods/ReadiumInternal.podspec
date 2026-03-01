@@ -9,7 +9,7 @@ Pod::Spec.new do |s|
   s.summary       = "Private utilities used by the Readium modules"
   s.homepage      = "http://readium.github.io"
   s.author        = { "Readium" => "contact@readium.org" }
-  s.source        = { :git => "https://github.com/readium/swift-toolkit.git", :tag => s.version }
+  s.source        = { :git => "https://github.com/sysint64/swift-toolkit.git", :branch => "haruhi" }
   s.requires_arc  = true
   s.source_files  = "Sources/Internal/**/*.{m,h,swift}"
   s.swift_version = '5.10'
