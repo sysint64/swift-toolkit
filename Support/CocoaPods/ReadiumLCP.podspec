@@ -6,7 +6,7 @@ Pod::Spec.new do |s|
   s.summary       = "Readium LCP"
   s.homepage      = "http://readium.github.io"
   s.author        = { "Readium" => "contact@readium.org" }
-  s.source        = { :git => "https://github.com/readium/swift-toolkit.git", :tag => s.version }
+  s.source        = { :git => "https://github.com/sysint64/swift-toolkit.git", :branch => "haruhi" }
   s.requires_arc  = true
   s.resource_bundles = {
     'ReadiumLCP' => [
@@ -19,7 +19,7 @@ Pod::Spec.new do |s|
   s.platform      = :ios
   s.ios.deployment_target = "15.0"
   s.xcconfig      = { 'HEADER_SEARCH_PATHS' => '$(SDKROOT)/usr/include/libxml2'}
-  
+
   s.dependency 'ReadiumShared' , '~> 3.7.0'
   s.dependency 'ReadiumInternal', '~> 3.7.0'
   s.dependency 'ReadiumZIPFoundation', '~> 3.0.1'
