@@ -101,7 +101,6 @@ public final class DirectionalNavigationAdapter {
     private let keyboardPolicy: KeyboardPolicy
     private let animatedTransition: Bool
     private let onNavigation: @MainActor () -> Void
-    private var adapterTokens: [InputObservableToken] = []
 
     @available(*, deprecated, message: "Use `bind(to:)` instead of notifying the event yourself. See the migration guide.")
     private weak var navigator: VisualNavigator?
@@ -126,13 +125,6 @@ public final class DirectionalNavigationAdapter {
         self.onNavigation = onNavigation
     }
 
-    @MainActor public func unbindAll(from navigator: VisualNavigator) {
-        for token in adapterTokens {
-            navigator.removeObserver(token)
-        }
-        adapterTokens.removeAll()
-    }
-
     /// Binds the adapter to the given visual navigator.
     ///
     /// It will automatically observe pointer and key events to turn pages.
@@ -144,31 +136,28 @@ public final class DirectionalNavigationAdapter {
 
             switch pointerType {
             case .touch:
-                let token = navigator.addObserver(.tap { [self, weak navigator] event in
+                navigator.addObserver(.tap { [self, weak navigator] event in
                     guard let navigator = navigator else {
                         return false
                     }
                     return await onTap(at: event.location, in: navigator)
                 })
-                adapterTokens.append(token)
             case .mouse:
-                let token = navigator.addObserver(.click { [self, weak navigator] event in
+                navigator.addObserver(.click { [self, weak navigator] event in
                     guard let navigator = navigator else {
                         return false
                     }
                     return await onTap(at: event.location, in: navigator)
                 })
-                adapterTokens.append(token)
             }
         }
 
-        let token = navigator.addObserver(.key { [self, weak navigator] event in
+        navigator.addObserver(.key { [self, weak navigator] event in
             guard let navigator = navigator else {
                 return false
             }
             return await onKey(event, in: navigator)
         })
-        adapterTokens.append(token)
     }
 
     @MainActor
