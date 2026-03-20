@@ -116,6 +116,10 @@ public extension HTTPClient {
         let result = await stream(
             request: request,
             consume: { data, progression in
+                if Task.isCancelled {
+                    return .failure(.cancelled)
+                }
+
                 do {
                     try fileHandle.seekToEnd()
                     try fileHandle.write(contentsOf: data)
