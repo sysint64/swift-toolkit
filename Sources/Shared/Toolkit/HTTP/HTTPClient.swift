@@ -32,6 +32,9 @@ public extension HTTPClient {
         let response = await stream(
             request: request,
             consume: { chunk, _ in
+                if Task.isCancelled {
+                    return .failure(.cancelled)
+                }
                 data.append(chunk)
                 return .success(())
             }
