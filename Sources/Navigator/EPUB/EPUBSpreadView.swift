@@ -149,6 +149,14 @@ class EPUBSpreadView: UIView, Loggable, PageView {
         return abs(scrollView.contentOffset.x - maxOffset) < 2
     }
 
+    var isAtFirstInternalPage: Bool {
+        guard scrollView.contentSize.width > scrollView.frame.width else {
+            // Content fits in one page, so we're on the first (only) page
+            return true
+        }
+        return abs(scrollView.contentOffset.x) < 2
+    }
+
     @available(*, unavailable)
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")

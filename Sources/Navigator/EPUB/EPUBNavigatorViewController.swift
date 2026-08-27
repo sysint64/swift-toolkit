@@ -402,6 +402,15 @@ open class EPUBNavigatorViewController: InputObservableViewController,
         return spreadView.isAtLastInternalPage
     }
 
+    public var isAtFirstPage: Bool {
+        guard let paginationView = paginationView,
+              paginationView.currentIndex == 0,
+              let spreadView = paginationView.currentView as? EPUBSpreadView
+        else { return false }
+
+        return spreadView.isAtFirstInternalPage
+    }
+
     @objc private func willResignActive() {
         isActive = false
     }
