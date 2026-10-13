@@ -9,7 +9,7 @@ Pod::Spec.new do |s|
   s.summary       = "Readium Shared"
   s.homepage      = "http://readium.github.io"
   s.author        = { "Readium" => "contact@readium.org" }
-  s.source        = { :git => "https://github.com/sysint64/swift-toolkit.git", :branch => "haruhi-3.11.0" }
+  s.source        = { :git => "https://github.com/sysint64/swift-toolkit.git", :branch => "4.0.0-alpha.2" }
   s.requires_arc  = true
   s.resource_bundles = {
     'ReadiumShared' => ['Sources/Shared/Resources/**'],
