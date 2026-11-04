@@ -106,6 +106,7 @@ struct UserPreferences<
                             commit: commit,
                             backgroundColor: editor.backgroundColor,
                             columnCount: editor.columnCount,
+                            disablePageTurnsWhileScrolling: editor.disablePageTurnsWhileScrolling,
                             fontFamily: editor.fontFamily,
                             fontSize: editor.fontSize,
                             fontWeight: editor.fontWeight,
@@ -321,6 +322,7 @@ struct UserPreferences<
         commit: @escaping () -> Void,
         backgroundColor: AnyPreference<ReadiumNavigator.Color>? = nil,
         columnCount: AnyEnumPreference<ColumnCount>? = nil,
+        disablePageTurnsWhileScrolling: AnyPreference<Bool>? = nil,
         fontFamily: AnyPreference<FontFamily?>? = nil,
         fontSize: AnyRangePreference<Double>? = nil,
         fontWeight: AnyRangePreference<Double>? = nil,
@@ -384,6 +386,14 @@ struct UserPreferences<
                     toggleRow(
                         title: "Scroll",
                         preference: scroll,
+                        commit: commit
+                    )
+                }
+
+                if let disablePageTurnsWhileScrolling = disablePageTurnsWhileScrolling {
+                    toggleRow(
+                        title: "Disable swipes between chapters",
+                        preference: disablePageTurnsWhileScrolling,
                         commit: commit
                     )
                 }

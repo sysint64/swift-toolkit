@@ -12,12 +12,19 @@ All notable changes to this project will be documented in this file. Take a look
 * `AudioNavigator.stop()` stops the playback and ends the audio session.
 * The `AudioNavigator` reports the new `MediaPlaybackState.ended` when the playback reaches the end of the publication, by playing or seeking up to it.
 * `MediaPlaybackState.playsWhenReady` indicates whether the player is playing or will as soon as it is ready, e.g. to choose between a play and a pause button.
+* New `disablePageTurnsWhileScrolling` EPUB preference to disable the horizontal swipes moving to the previous or next resource in scroll mode. Unlike the configuration property, it can be changed while reading, from `EPUBPreferencesEditor`. When enabled, provide your own controls to move between resources, e.g. with `goForward()` and `goBackward()`. Horizontal swipes and edge taps remain available near the ends of a resource: toward the next one within three quarters of a screen of the bottom, toward the previous one within three quarters of a screen of the top. Resources no taller than two screens, and single-image fixed-layout resources, remain swipeable in both directions.
 
 #### Streamer
 
 * Audio publications without a manifest, such as a standalone M4B or MP3 file or a container of audio files, now have a table of contents built from the chapters embedded in their audio files.
 * Audiobooks without a table of contents now get one from the titles of their reading order resources.
 * New `AudioMetadataReader` to customize how `AudioParser` reads the metadata of each audio file.
+
+### Deprecated
+
+#### Navigator
+
+* `EPUBNavigatorViewController.Configuration.disablePageTurnsWhileScrolling` is deprecated in favor of the `disablePageTurnsWhileScrolling` EPUB preference. The configuration value is still used as the default value of the preference.
 
 ### Changed
 
@@ -37,6 +44,7 @@ All notable changes to this project will be documented in this file. Take a look
     * Seeking up to the end of a resource with `seek(to:)` or `seek(by:)` ends it, like playing up to it. `AudioNavigatorDelegate.navigator(_:shouldPlayNextResource:)` is called, and the playback is paused at the end of the resource when it returns `false`.
 * `AudioNavigatorDelegate.navigator(_:shouldPlayNextResource:)` is no longer called after the last resource. Use the new `MediaPlaybackState.ended` to detect the end of the publication, [see the migration guide](docs/Migration%20Guide.md).
 * `NavigatorDelegate.navigator(_:didFailToLoadResourceAt:withError:)` takes an `AnyURL` instead of a `RelativeURL`, to report resources with an absolute HREF. Implementations must be updated or they are no longer called, [see the migration guide](docs/Migration%20Guide.md).
+* `EPUBNavigatorViewController.isAtLastPage` also requires the user to be within three quarters of a screen of the end of the last resource when `disablePageTurnsWhileScrolling` is enabled in scroll mode, where forward navigation is unlocked.
 
 #### Streamer
 
@@ -61,6 +69,7 @@ All notable changes to this project will be documented in this file. Take a look
 * [#632](https://github.com/readium/swift-toolkit/issues/632) Fixed decorations being duplicated on both pages when a fixed-layout EPUB is displayed as a two-page spread (contributed by [@mvanhorn](https://github.com/readium/swift-toolkit/pull/915)).
 * Fixed a memory leak in `EPUBNavigatorViewController` when quickly turning the pages of a fixed-layout publication (contributed by [@deltakosh](https://github.com/readium/swift-toolkit/pull/917)).
 * Fixed reflowable EPUBs being displayed as a single column on the iPhone Duo unfolded in landscape, by porting the [responsive columns fix of Readium CSS 1.1.2](https://github.com/readium/css/issues/247).
+* Swiping back to an EPUB resource you've already visited now returns to the position you left it at, instead of its start or end.
 
 
 ## [4.0.0-alpha.2] - 2026-09-18

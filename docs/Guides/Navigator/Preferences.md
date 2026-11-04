@@ -381,6 +381,7 @@ An EPUB can also mix both kinds of resources in a single publication. In this ca
 |----------------------|--------------------|--------------------|
 | `backgroundColor`    | :white_check_mark: | :white_check_mark: |
 | `columnCount`        | :white_check_mark: |                    |
+| `disablePageTurnsWhileScrolling` | :white_check_mark: |          |
 | `fontFamily`         | :white_check_mark: |                    |
 | `fontSize`           | :white_check_mark: |                    |
 | `fontWeight`         | :white_check_mark: |                    |
@@ -422,6 +423,17 @@ The following advanced preferences require `publisherStyles` to be explicitly se
 #### Scroll vs paginated
 
 The `columnCount` preference is available only when in paginated mode (`scroll = false`).
+
+The `disablePageTurnsWhileScrolling` preference is available only when in scroll mode (`scroll = true`). When enabled, horizontal swipes no longer move to the previous or next resource in the middle of a chapter, so you must offer another way to do so in your user interface, for example with buttons calling `goForward()` and `goBackward()`.
+
+Near the ends of a chapter, horizontal swipes remain available in the matching direction. The swipes unlock shortly before actually reaching the end of the resource:
+
+* within the last three quarters of a screen of a resource, swiping to the left (right in RTL) moves to the next resource,
+* within the first three quarters of a screen, swiping to the right (left in RTL) moves to the previous resource.
+
+Taps on the left and right edges of the viewport navigate with the same rules, using edge zones identical to those of `DirectionalNavigationAdapter` (at least 80 pt, or 30% of the viewport width). As with the adapter, a navigation consumes the tap.
+
+A resource no taller than two screens can always be left in both directions. Fixed-layout resources, such as bitmap images displayed with `preferredResourceVariant`, can be left from the first and last pages of their spread, so single-image pages can always be swiped. Near the reached edges, the swipe takes precedence over horizontal scrolling of the resource's content, such as an image wider than the viewport. Vertical-text resources keep page turns fully disabled.
 
 #### Dark theme specific preferences
 

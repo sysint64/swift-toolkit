@@ -13,6 +13,7 @@ import ReadiumShared
 public struct EPUBSettings: ConfigurableSettings, Sendable {
     public var backgroundColor: Color?
     public var columnCount: ColumnCount
+    public var disablePageTurnsWhileScrolling: Bool
     public var fit: Fit
     public var fontFamily: FontFamily?
     public var fontSize: Double
@@ -72,10 +73,12 @@ public struct EPUBSettings: ConfigurableSettings, Sendable {
         theme: Theme,
         typeScale: Double?,
         verticalText: Bool,
-        wordSpacing: Double?
+        wordSpacing: Double?,
+        disablePageTurnsWhileScrolling: Bool = false
     ) {
         self.backgroundColor = backgroundColor
         self.columnCount = columnCount
+        self.disablePageTurnsWhileScrolling = disablePageTurnsWhileScrolling
         self.fit = fit
         self.fontFamily = fontFamily
         self.fontSize = fontSize
@@ -194,7 +197,10 @@ public struct EPUBSettings: ConfigurableSettings, Sendable {
                 ?? defaults.typeScale,
             verticalText: verticalText,
             wordSpacing: preferences.wordSpacing
-                ?? defaults.wordSpacing
+                ?? defaults.wordSpacing,
+            disablePageTurnsWhileScrolling: preferences.disablePageTurnsWhileScrolling
+                ?? defaults.disablePageTurnsWhileScrolling
+                ?? false
         )
     }
 }
@@ -207,6 +213,7 @@ public struct EPUBSettings: ConfigurableSettings, Sendable {
 /// See `EPUBPreferences`.
 public struct EPUBDefaults: Sendable {
     public var columnCount: ColumnCount?
+    public var disablePageTurnsWhileScrolling: Bool?
     public var fit: Fit?
     public var fontSize: Double?
     public var fontWeight: Double?
@@ -231,6 +238,7 @@ public struct EPUBDefaults: Sendable {
 
     public init(
         columnCount: ColumnCount? = nil,
+        disablePageTurnsWhileScrolling: Bool? = nil,
         fit: Fit? = nil,
         fontSize: Double? = nil,
         fontWeight: Double? = nil,
@@ -254,6 +262,7 @@ public struct EPUBDefaults: Sendable {
         wordSpacing: Double? = nil
     ) {
         self.columnCount = columnCount
+        self.disablePageTurnsWhileScrolling = disablePageTurnsWhileScrolling
         self.fit = fit
         self.fontSize = fontSize
         self.fontWeight = fontWeight

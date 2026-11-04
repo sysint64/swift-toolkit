@@ -381,6 +381,21 @@ public final class EPUBPreferencesEditor: StatefulPreferencesEditor<EPUBPreferen
             }
         )
 
+    /// Disables horizontal swipes to move to the previous or next resource
+    /// when scroll is enabled.
+    ///
+    /// Only effective when the publication contains reflowable resources and
+    /// scroll is enabled.
+    public lazy var disablePageTurnsWhileScrolling: AnyPreference<Bool> =
+        preference(
+            preference: \.disablePageTurnsWhileScrolling,
+            setting: \.disablePageTurnsWhileScrolling,
+            defaultEffectiveValue: defaults.disablePageTurnsWhileScrolling ?? false,
+            isEffective: { [layouts] in
+                layouts.contains(.reflowable) && $0.settings.scroll
+            }
+        )
+
     /// Indicates if the fixed-layout resources should be rendered with a
     /// synthetic spread (dual-page).
     ///

@@ -36,6 +36,11 @@ protocol EPUBSpreadViewDelegate: AnyObject {
     /// Called when the user triggered an input key event.
     func spreadView(_ spreadView: EPUBSpreadView, didReceive event: KeyEvent)
 
+    /// Called when the user swiped horizontally at the top or bottom edge of a
+    /// resource to move to the previous or next one, while page turns are
+    /// disabled while scrolling (`disablePageTurnsWhileScrolling`).
+    func spreadView(_ spreadView: EPUBSpreadView, didRequestEdgeSwipeIn direction: EPUBEdgeSwipeDirection)
+
     /// Called when WKWebview terminates
     func spreadViewDidTerminate()
 }
@@ -69,6 +74,10 @@ class EPUBSpreadView: UIView, Loggable, PageView {
     private(set) var isSpreadInitialized = false
 
     private var spreadLoadTask: Task<Void, Never>?
+
+    /// Target and delegate of the edge swipe pan gesture, which it holds
+    /// weakly. See `EdgeSwipeGestureHandler`.
+    private var edgeSwipeHandler: EdgeSwipeGestureHandler?
 
     required init(
         viewModel: EPUBNavigatorViewModel,
@@ -146,6 +155,16 @@ class EPUBSpreadView: UIView, Loggable, PageView {
         webView.navigationDelegate = self
         webView.uiDelegate = self
         scrollView.delegate = self
+
+        // Keeps horizontal swipes usable to move to the previous or next
+        // resource at the edges of a resource, when page turns are disabled
+        // while scrolling. The gesture is always attached and gated on the
+        // current settings when it begins, so that the
+        // `disablePageTurnsWhileScrolling` preference can be changed while
+        // reading without re-creating the view.
+        let edgeSwipeHandler = EdgeSwipeGestureHandler(spreadView: self)
+        addGestureRecognizer(edgeSwipeHandler.makeGesture())
+        self.edgeSwipeHandler = edgeSwipeHandler
     }
 
     var isAtLastInternalPage: Bool {
@@ -163,6 +182,77 @@ class EPUBSpreadView: UIView, Loggable, PageView {
             return true
         }
         return abs(scrollView.contentOffset.x) < 2
+    }
+
+    /// Whether the current vertical scroll position is within the unlock zone
+    /// of the start of the resource, where navigating backward is allowed.
+    var edgeSwipeAllowsBackward: Bool {
+        EPUBEdgeSwipePolicy.isNearTop(
+            offset: scrollView.contentOffset.y,
+            inset: scrollView.contentInset.top,
+            contentSize: scrollView.contentSize.height,
+            viewportSize: scrollView.bounds.height
+        )
+    }
+
+    /// Whether the current vertical scroll position is within the unlock zone
+    /// of the end of the resource, where navigating forward is allowed.
+    var edgeSwipeAllowsForward: Bool {
+        EPUBEdgeSwipePolicy.isNearBottom(
+            offset: scrollView.contentOffset.y,
+            inset: scrollView.contentInset.bottom,
+            contentSize: scrollView.contentSize.height,
+            viewportSize: scrollView.bounds.height
+        )
+    }
+
+    // MARK: - Edge swipe navigation
+
+    /// Whether the edge swipe navigation applies to the current settings.
+    var isEdgeSwipeEnabled: Bool {
+        viewModel.scroll
+            && viewModel.settings.disablePageTurnsWhileScrolling
+            && !viewModel.verticalText
+    }
+
+    /// Returns the navigation direction requested by a horizontal drag, if it
+    /// should be recognized as an edge swipe in the current configuration.
+    ///
+    /// The default implementation uses the vertical scroll unlock zones of
+    /// the resource. Subclasses lay out their content differently, such as
+    /// the internal pages of a fixed-layout spread, and override the edge
+    /// properties accordingly.
+    func edgeSwipeDirection(for translation: CGPoint) -> EPUBEdgeSwipeDirection? {
+        guard isEdgeSwipeEnabled else {
+            return nil
+        }
+        return EPUBEdgeSwipePolicy.direction(
+            for: translation,
+            readingProgression: viewModel.readingProgression,
+            backwardEdgeReached: edgeSwipeAllowsBackward,
+            forwardEdgeReached: edgeSwipeAllowsForward
+        )
+    }
+
+    func edgeSwipeGestureShouldBegin(_ gesture: UIPanGestureRecognizer) -> Bool {
+        edgeSwipeDirection(for: gesture.translation(in: gesture.view)) != nil
+    }
+
+    func didPanEdgeSwipe(_ gesture: UIPanGestureRecognizer) {
+        guard gesture.state == .ended else {
+            return
+        }
+        let translation = gesture.translation(in: gesture.view)
+        guard
+            let direction = edgeSwipeDirection(for: translation),
+            EPUBEdgeSwipePolicy.shouldTrigger(
+                translation: translation,
+                velocity: gesture.velocity(in: gesture.view)
+            )
+        else {
+            return
+        }
+        delegate?.spreadView(self, didRequestEdgeSwipeIn: direction)
     }
 
     @available(*, unavailable)
@@ -980,5 +1070,52 @@ private extension KeyEvent.Phase {
         case "down": self = .down
         default: return nil
         }
+    }
+}
+
+/// Target and delegate of the horizontal pan gesture allowing to move to the
+/// previous or next resource at a resource's edges, when page turns are
+/// disabled while scrolling (`disablePageTurnsWhileScrolling`).
+///
+/// The handler is kept separate from the spread view because the latter
+/// implements `gestureRecognizer(_:shouldRequireFailureOf:)` returning true
+/// for every recognizer, which would prevent the pan from ever beginning.
+/// See `EPUBEdgeSwipePolicy` for the conditions under which the swipe is
+/// recognized.
+@MainActor
+private final class EdgeSwipeGestureHandler: NSObject, UIGestureRecognizerDelegate {
+    private weak var spreadView: EPUBSpreadView?
+
+    init(spreadView: EPUBSpreadView) {
+        self.spreadView = spreadView
+        super.init()
+    }
+
+    func makeGesture() -> UIPanGestureRecognizer {
+        let gesture = UIPanGestureRecognizer(target: self, action: #selector(didPan(_:)))
+        gesture.delegate = self
+        return gesture
+    }
+
+    func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        guard let gesture = gestureRecognizer as? UIPanGestureRecognizer else {
+            return false
+        }
+        return spreadView?.edgeSwipeGestureShouldBegin(gesture) ?? false
+    }
+
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldBeRequiredToFailBy otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+        // Give the edge swipe priority over the web view's own pan gestures,
+        // so that swiping works on resources which scroll horizontally, such
+        // as pages containing an image wider than the viewport. Other pans
+        // (e.g. the vertical content scrolling) start as soon as the edge
+        // swipe fails, which happens when the drag is vertical-dominant or
+        // no matching edge is reached.
+        otherGestureRecognizer is UIPanGestureRecognizer
+            && (spreadView?.isEdgeSwipeEnabled ?? false)
+    }
+
+    @objc private func didPan(_ gesture: UIPanGestureRecognizer) {
+        spreadView?.didPanEdgeSwipe(gesture)
     }
 }

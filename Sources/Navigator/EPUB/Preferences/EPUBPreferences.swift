@@ -18,6 +18,13 @@ public struct EPUBPreferences: ConfigurablePreferences, Sendable {
     /// spread).
     public var columnCount: ColumnCount?
 
+    /// Disables horizontal swipes to move to the previous or next resource
+    /// when scroll is enabled.
+    ///
+    /// When `true`, the app must provide its own way to move between
+    /// resources, for example with `goForward()` and `goBackward()`.
+    public var disablePageTurnsWhileScrolling: Bool?
+
     /// Method for fitting the content of fixed-layout resources within the
     /// viewport.
     ///
@@ -110,6 +117,7 @@ public struct EPUBPreferences: ConfigurablePreferences, Sendable {
     public init(
         backgroundColor: Color? = nil,
         columnCount: ColumnCount? = nil,
+        disablePageTurnsWhileScrolling: Bool? = nil,
         fit: Fit? = nil,
         fontFamily: FontFamily? = nil,
         fontSize: Double? = nil,
@@ -138,6 +146,7 @@ public struct EPUBPreferences: ConfigurablePreferences, Sendable {
     ) {
         self.backgroundColor = backgroundColor
         self.columnCount = columnCount
+        self.disablePageTurnsWhileScrolling = disablePageTurnsWhileScrolling
         self.fit = fit
         self.fontFamily = fontFamily
         self.fontSize = fontSize.map { max($0, 0) }
@@ -169,6 +178,7 @@ public struct EPUBPreferences: ConfigurablePreferences, Sendable {
         EPUBPreferences(
             backgroundColor: other.backgroundColor ?? backgroundColor,
             columnCount: other.columnCount ?? columnCount,
+            disablePageTurnsWhileScrolling: other.disablePageTurnsWhileScrolling ?? disablePageTurnsWhileScrolling,
             fit: other.fit ?? fit,
             fontFamily: other.fontFamily ?? fontFamily,
             fontSize: other.fontSize ?? fontSize,

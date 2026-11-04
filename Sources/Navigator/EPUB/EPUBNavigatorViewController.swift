@@ -80,7 +80,11 @@ open class EPUBNavigatorViewController: InputObservableViewController,
         public var editingActions: [EditingAction]
 
         /// Disables horizontal page turning when scroll is enabled.
-        public var disablePageTurnsWhileScrolling: Bool
+        @available(*, deprecated, message: "Use the `disablePageTurnsWhileScrolling` EPUB preference, or `defaults.disablePageTurnsWhileScrolling` instead")
+        public var disablePageTurnsWhileScrolling: Bool {
+            get { defaults.disablePageTurnsWhileScrolling ?? false }
+            set { defaults.disablePageTurnsWhileScrolling = newValue }
+        }
 
         /// Content insets used to add some vertical margins around reflowable
         /// EPUB publications. Note that the margins include the safe area
@@ -132,7 +136,7 @@ open class EPUBNavigatorViewController: InputObservableViewController,
             preferences: EPUBPreferences = .empty,
             defaults: EPUBDefaults = EPUBDefaults(),
             editingActions: [EditingAction] = EditingAction.defaultActions,
-            disablePageTurnsWhileScrolling: Bool = false,
+            disablePageTurnsWhileScrolling: Bool? = nil,
             contentInset: [UIUserInterfaceSizeClass: EPUBContentInsets] = [
                 .compact: (top: 34, bottom: 34),
                 .regular: (top: 62, bottom: 62),
@@ -148,7 +152,9 @@ open class EPUBNavigatorViewController: InputObservableViewController,
             self.preferences = preferences
             self.defaults = defaults
             self.editingActions = editingActions
-            self.disablePageTurnsWhileScrolling = disablePageTurnsWhileScrolling
+            if let disablePageTurnsWhileScrolling = disablePageTurnsWhileScrolling {
+                self.defaults.disablePageTurnsWhileScrolling = disablePageTurnsWhileScrolling
+            }
             self.contentInset = contentInset
             self.preloadPreviousPositionCount = preloadPreviousPositionCount
             self.preloadNextPositionCount = preloadNextPositionCount
@@ -390,6 +396,20 @@ open class EPUBNavigatorViewController: InputObservableViewController,
             name: UIApplication.willResignActiveNotification,
             object: nil
         )
+
+        // Taps on the horizontal edges move to the previous or next resource
+        // in scroll mode when page turns are disabled, gated by the same
+        // unlock zones as the edge swipes. This is registered from `init`
+        // rather than `viewDidLoad` so that it precedes the observers the
+        // host app binds to the navigator: at the horizontal edges, the
+        // gated navigation takes precedence over other tap handlers, such as
+        // opening an image. It consumes taps only when it navigates.
+        addObserver(.tap { [weak self] event in
+            guard let self else {
+                return false
+            }
+            return await self.handleScrollModeEdgeTap(at: event.location)
+        })
     }
 
     @available(*, unavailable)
@@ -420,6 +440,13 @@ open class EPUBNavigatorViewController: InputObservableViewController,
               paginationView.currentIndex == paginationView.pageCount - 1,
               let spreadView = paginationView.currentView as? EPUBSpreadView
         else { return false }
+
+        // When page turns are disabled while scrolling, forward navigation is
+        // only available from the unlock zone near the end of the resource, so
+        // the last page is only reached there as well.
+        if settings.scroll, settings.disablePageTurnsWhileScrolling, !viewModel.verticalText {
+            return spreadView.edgeSwipeAllowsForward
+        }
 
         return spreadView.isAtLastInternalPage
     }
@@ -701,7 +728,7 @@ open class EPUBNavigatorViewController: InputObservableViewController,
     // MARK: - Navigator
 
     private var isPaginationViewScrollingEnabled: Bool {
-        !(config.disablePageTurnsWhileScrolling && settings.scroll)
+        !(settings.disablePageTurnsWhileScrolling && settings.scroll)
     }
 
     public var presentation: VisualNavigatorPresentation {
@@ -823,6 +850,43 @@ open class EPUBNavigatorViewController: InputObservableViewController,
             }
         }()
         return await go(to: direction, options: options)
+    }
+
+    /// Moves to the previous or next resource when tapping on the horizontal
+    /// edges of the viewport in scroll mode, while page turns are disabled
+    /// while scrolling (`disablePageTurnsWhileScrolling`).
+    ///
+    /// The edge zones mirror `DirectionalNavigationAdapter`, and the
+    /// navigation is gated by the same unlock zones as the edge swipes.
+    private func handleScrollModeEdgeTap(at point: CGPoint) async -> Bool {
+        guard
+            state == .idle,
+            settings.scroll,
+            settings.disablePageTurnsWhileScrolling,
+            !viewModel.verticalText,
+            let spreadView = paginationView?.currentView as? EPUBSpreadView,
+            let direction = EPUBEdgeSwipePolicy.tapDirection(
+                atX: point.x,
+                width: view.bounds.width,
+                readingProgression: viewModel.readingProgression
+            )
+        else {
+            return false
+        }
+
+        switch direction {
+        case .forward:
+            guard spreadView.edgeSwipeAllowsForward else {
+                return false
+            }
+            await goForward(options: .animated)
+        case .backward:
+            guard spreadView.edgeSwipeAllowsBackward else {
+                return false
+            }
+            await goBackward(options: .animated)
+        }
+        return true
     }
 
     // MARK: - SelectableNavigator
@@ -1308,6 +1372,22 @@ extension EPUBNavigatorViewController: EPUBSpreadViewDelegate {
     func spreadViewPagesDidChange(_ spreadView: EPUBSpreadView) {
         if paginationView?.currentView == spreadView {
             updateCurrentLocation()
+        }
+    }
+
+    func spreadView(_ spreadView: EPUBSpreadView, didRequestEdgeSwipeIn direction: EPUBEdgeSwipeDirection) {
+        // Ignores requests coming from a pre-loaded view which is not
+        // currently visible.
+        guard paginationView?.currentView === spreadView else {
+            return
+        }
+        Task {
+            switch direction {
+            case .forward:
+                await goForward(options: .animated)
+            case .backward:
+                await goBackward(options: .animated)
+            }
         }
     }
 

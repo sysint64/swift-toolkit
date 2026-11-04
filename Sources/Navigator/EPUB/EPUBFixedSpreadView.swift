@@ -62,6 +62,20 @@ final class EPUBFixedSpreadView: EPUBSpreadView {
         }
     }
 
+    // MARK: - Edge swipe navigation
+
+    /// A fixed-layout spread navigates between its internal pages with
+    /// horizontal swipes, so the resource can only be left from the first or
+    /// the last page of the spread. A single bitmap fills the viewport, which
+    /// reaches both edges at once and allows navigation in both directions.
+    override var edgeSwipeAllowsBackward: Bool {
+        isAtFirstInternalPage
+    }
+
+    override var edgeSwipeAllowsForward: Bool {
+        isAtLastInternalPage
+    }
+
     override func layoutSubviews() {
         super.layoutSubviews()
         layoutSpread()
