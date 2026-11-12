@@ -209,10 +209,16 @@ class EPUBSpreadView: UIView, Loggable, PageView {
     // MARK: - Edge swipe navigation
 
     /// Whether the edge swipe navigation applies to the current settings.
+    ///
+    /// It recognizes horizontal swipes when page turns are disabled while
+    /// scrolling (`disablePageTurnsWhileScrolling`), restricted to the unlock
+    /// zones near the ends of the resource, or when animated swipe page turns
+    /// are enabled (`animatePageTurnsWhileScrolling`), from any position.
     var isEdgeSwipeEnabled: Bool {
         viewModel.scroll
-            && viewModel.settings.disablePageTurnsWhileScrolling
             && !viewModel.verticalText
+            && (viewModel.settings.disablePageTurnsWhileScrolling
+                || viewModel.animatePageTurnsWhileScrolling)
     }
 
     /// Returns the navigation direction requested by a horizontal drag, if it
@@ -226,11 +232,15 @@ class EPUBSpreadView: UIView, Loggable, PageView {
         guard isEdgeSwipeEnabled else {
             return nil
         }
+        // The unlock zones only restrict navigation while page turns are
+        // disabled while scrolling; with animated swipe page turns the
+        // resource can be left from any position, like the pager drag.
+        let gated = viewModel.settings.disablePageTurnsWhileScrolling
         return EPUBEdgeSwipePolicy.direction(
             for: translation,
             readingProgression: viewModel.readingProgression,
-            backwardEdgeReached: edgeSwipeAllowsBackward,
-            forwardEdgeReached: edgeSwipeAllowsForward
+            backwardEdgeReached: !gated || edgeSwipeAllowsBackward,
+            forwardEdgeReached: !gated || edgeSwipeAllowsForward
         )
     }
 

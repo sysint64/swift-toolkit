@@ -727,8 +727,27 @@ open class EPUBNavigatorViewController: InputObservableViewController,
 
     // MARK: - Navigator
 
+    /// Whether horizontal swipes moving to the previous or next resource in
+    /// scroll mode are recognized by the navigator and animated with a slide
+    /// transition.
+    ///
+    /// This replaces the free drag of the pagination pager with the same
+    /// programmatic navigation as the edge swipes gated by
+    /// `disablePageTurnsWhileScrolling`, which prevents races between rapid
+    /// swipes and the settling of the incoming resource. Taps are not
+    /// affected: page turns triggered by taps are never animated.
+    public var animatePageTurnsWhileScrolling: Bool = false {
+        didSet {
+            guard oldValue != animatePageTurnsWhileScrolling else {
+                return
+            }
+            viewModel.animatePageTurnsWhileScrolling = animatePageTurnsWhileScrolling
+            paginationView?.isScrollEnabled = isPaginationViewScrollingEnabled
+        }
+    }
+
     private var isPaginationViewScrollingEnabled: Bool {
-        !(settings.disablePageTurnsWhileScrolling && settings.scroll)
+        !(settings.scroll && (settings.disablePageTurnsWhileScrolling || animatePageTurnsWhileScrolling))
     }
 
     public var presentation: VisualNavigatorPresentation {
@@ -858,6 +877,8 @@ open class EPUBNavigatorViewController: InputObservableViewController,
     ///
     /// The edge zones mirror `DirectionalNavigationAdapter`, and the
     /// navigation is gated by the same unlock zones as the edge swipes.
+    /// The transition is never animated, like all other page turns triggered
+    /// by taps.
     private func handleScrollModeEdgeTap(at point: CGPoint) async -> Bool {
         guard
             state == .idle,
@@ -874,17 +895,18 @@ open class EPUBNavigatorViewController: InputObservableViewController,
             return false
         }
 
+        let options = NavigatorGoOptions(animated: false)
         switch direction {
         case .forward:
             guard spreadView.edgeSwipeAllowsForward else {
                 return false
             }
-            await goForward(options: .animated)
+            await goForward(options: options)
         case .backward:
             guard spreadView.edgeSwipeAllowsBackward else {
                 return false
             }
-            await goBackward(options: .animated)
+            await goBackward(options: options)
         }
         return true
     }

@@ -207,6 +207,13 @@ enum EPUBScriptScope {
     /// Currently applied settings.
     private(set) var settings: EPUBSettings
 
+    /// Whether horizontal swipes moving to the previous or next resource in
+    /// scroll mode are programmatically recognized and animated, replacing
+    /// the free pager drag. Set by the navigator, read by the spread views to
+    /// enable their edge swipe gesture. See
+    /// `EPUBNavigatorViewController.animatePageTurnsWhileScrolling`.
+    var animatePageTurnsWhileScrolling: Bool = false
+
     /// Last submitted preferences.
     private var preferences: EPUBPreferences
 

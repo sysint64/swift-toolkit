@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file. Take a look
 * The `AudioNavigator` reports the new `MediaPlaybackState.ended` when the playback reaches the end of the publication, by playing or seeking up to it.
 * `MediaPlaybackState.playsWhenReady` indicates whether the player is playing or will as soon as it is ready, e.g. to choose between a play and a pause button.
 * New `disablePageTurnsWhileScrolling` EPUB preference to disable the horizontal swipes moving to the previous or next resource in scroll mode. Unlike the configuration property, it can be changed while reading, from `EPUBPreferencesEditor`. When enabled, provide your own controls to move between resources, e.g. with `goForward()` and `goBackward()`. Horizontal swipes and edge taps remain available near the ends of a resource: toward the next one within three quarters of a screen of the bottom, toward the previous one within three quarters of a screen of the top. Resources no taller than two screens, and single-image fixed-layout resources, remain swipeable in both directions.
+* New `EPUBNavigatorViewController.animatePageTurnsWhileScrolling` property: in scroll mode, horizontal swipes which change resource are recognized by the navigator and animated with a slide transition, instead of turning the page with a free drag of the pager. This avoids races between rapid swipes and the settling of the incoming resource. Page turns triggered by taps are never animated.
 
 #### Streamer
 
